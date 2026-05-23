@@ -31,9 +31,11 @@ public class TicketController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all tickets", description = "Returns a list of all active tickets")
-    public List<Ticket> getAllTickets() {
-        return ticketService.getAllTickets();
+    @Operation(summary = "Get tickets", description = "Returns a list of tickets, optionally filtered by status and assignee")
+    public List<Ticket> getTickets(
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "developerId", required = false) Long developerId) {
+        return ticketService.searchTickets(status, developerId);
     }
 
     @PostMapping(consumes = {"multipart/form-data"})

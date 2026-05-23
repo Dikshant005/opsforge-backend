@@ -1,12 +1,15 @@
 package com.opsforge.backend.services;
 
+import com.opsforge.backend.events.CommentEvent;
 import com.opsforge.backend.models.Comment;
 import com.opsforge.backend.models.Ticket;
 import com.opsforge.backend.models.User;
 import com.opsforge.backend.repositories.CommentRepository;
 import com.opsforge.backend.repositories.TicketRepository;
 import com.opsforge.backend.repositories.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -16,15 +19,20 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    // Orchestrating three different database tables to create a comment
-    public CommentService(CommentRepository commentRepository, TicketRepository ticketRepository, UserRepository userRepository) {
+    public CommentService(CommentRepository commentRepository, 
+                          TicketRepository ticketRepository, 
+                          UserRepository userRepository,
+                          ApplicationEventPublisher eventPublisher) {
         this.commentRepository = commentRepository;
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     //  Add a new comment to a ticket
+    @Transactional
     public Comment addComment(Long ticketId, Long authorId, String message, String attachmentUrl) {
         
         // Check if the ticket is real
@@ -42,8 +50,11 @@ public class CommentService {
         comment.setAuthor(author);
         comment.setAttachmentUrl(attachmentUrl);
 
-        // Save to PostgreSQL
-        return commentRepository.save(comment);
+        Comment savedComment = commentRepository.save(comment);
+        
+        eventPublisher.publishEvent(new CommentEvent(savedComment));
+        
+        return savedComment;
     }
 
     // Fetch all comments for a specific ticket
