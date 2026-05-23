@@ -4,6 +4,8 @@ import com.opsforge.backend.models.PasswordResetToken;
 import com.opsforge.backend.models.User;
 import com.opsforge.backend.repositories.PasswordResetTokenRepository;
 import com.opsforge.backend.repositories.UserRepository;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,11 +18,16 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository tokenRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JavaMailSender mailSender;
 
-    public PasswordResetService(PasswordResetTokenRepository tokenRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public PasswordResetService(PasswordResetTokenRepository tokenRepository, 
+                                UserRepository userRepository, 
+                                PasswordEncoder passwordEncoder,
+                                JavaMailSender mailSender) {
         this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.mailSender = mailSender;
     }
 
     @Transactional
@@ -37,12 +44,20 @@ public class PasswordResetService {
 
         tokenRepository.save(resetToken);
 
-        // Mock "Sending" the link
+        // Send Email
         String resetLink = "http://localhost:3000/reset-password?token=" + token;
-        System.out.println("==========================================");
-        System.out.println("SENDING RESET LINK TO USER: " + username);
-        System.out.println("LINK: " + resetLink);
-        System.out.println("==========================================");
+        sendEmail(user.getUsername(), "Password Reset Request", 
+                "Click the link below to reset your password. It expires in 30 minutes:\n\n" + resetLink);
+        
+        System.out.println("Email sent to: " + username);
+    }
+
+    private void sendEmail(String to, String subject, String body) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to); // Assuming username is the email address as per your setup
+        message.setSubject(subject);
+        message.setText(body);
+        mailSender.send(message);
     }
 
     @Transactional
@@ -63,4 +78,5 @@ public class PasswordResetService {
         tokenRepository.delete(resetToken);
     }
 }
+
 
