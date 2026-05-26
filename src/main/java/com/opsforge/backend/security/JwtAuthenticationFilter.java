@@ -1,5 +1,6 @@
 package com.opsforge.backend.security;
 
+import com.opsforge.backend.services.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,10 +19,12 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService blacklistService;
 
     // verify the tokens
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, TokenBlacklistService blacklistService) {
         this.jwtUtil = jwtUtil;
+        this.blacklistService = blacklistService;
     }
 
     @Override
@@ -39,6 +42,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Cut off the first 7 characters ("Bearer ") to just get the mathematical token
             jwt = authHeader.substring(7);
             
+            // SECURITY CHECK: Check if token is blacklisted (logged out)
+            if (blacklistService.isTokenBlacklisted(jwt)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             try {
                 // Use the Machine to read the name on the badge
                 username = jwtUtil.extractUsername(jwt);
@@ -73,3 +82,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+

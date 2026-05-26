@@ -38,6 +38,12 @@ public class TicketController {
         return ticketService.searchTickets(status, developerId);
     }
 
+    @GetMapping("/stats")
+    @Operation(summary = "Get ticket statistics", description = "Returns counts of tickets grouped by status")
+    public Map<String, Long> getStats() {
+        return ticketService.getTicketStats();
+    }
+
     @PostMapping(consumes = {"multipart/form-data"})
     @Operation(summary = "Create ticket", description = "Creates a new ticket with an optional attachment")
     public ResponseEntity<Ticket> createTicket(

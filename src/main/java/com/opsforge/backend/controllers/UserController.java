@@ -40,6 +40,12 @@ public class UserController {
         return userService.getAllUsers();
     }
 
+    @GetMapping("/developers")
+    @Operation(summary = "Get active developers", description = "Returns a list of approved and active users with the DEV role")
+    public List<User> getDevelopers() {
+        return userService.getAssignableDevelopers();
+    }
+
     //GET http://localhost:8080/api/users/{username}
     @GetMapping("/{username}")
     @Operation(summary = "Get user by username", description = "Returns profile data for a specific user")

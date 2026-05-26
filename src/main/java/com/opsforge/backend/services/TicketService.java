@@ -11,7 +11,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class TicketService {
@@ -74,6 +76,15 @@ public class TicketService {
         } else {
             return getAllTickets();
         }
+    }
+
+    public Map<String, Long> getTicketStats() {
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("PENDING", ticketRepository.countByStatusAndIsDeletedFalse("PENDING"));
+        stats.put("IN_PROGRESS", ticketRepository.countByStatusAndIsDeletedFalse("IN_PROGRESS"));
+        stats.put("FIXED", ticketRepository.countByStatusAndIsDeletedFalse("FIXED"));
+        stats.put("CLOSED", ticketRepository.countByStatusAndIsDeletedFalse("CLOSED"));
+        return stats;
     }
 
     // Update Ticket Status with State Machine and Role-based permissions

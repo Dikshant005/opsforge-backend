@@ -13,4 +13,5 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     List<Ticket> findByStatusAndIsDeletedFalse(String status);
     List<Ticket> findByDeveloperAndIsDeletedFalse(User developer);
     List<Ticket> findByStatusAndDeveloperAndIsDeletedFalse(String status, User developer);
+    long countByStatusAndIsDeletedFalse(String status);
 }

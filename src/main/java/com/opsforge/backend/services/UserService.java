@@ -118,6 +118,10 @@ public class UserService {
         return updatedUser;
     }
 
+    public List<User> getAssignableDevelopers() {
+        return userRepository.findByRoleAndAccountStatusAndIsActiveTrue("DEV", "APPROVED");
+    }
+
     private void logAction(String entity, Long entityId, String action, String details, User performedBy) {
         AuditLog log = new AuditLog();
         log.setEntityName(entity);

@@ -3,6 +3,7 @@ package com.opsforge.backend.controllers;
 import com.opsforge.backend.dtos.RegisterUserDTO;
 import com.opsforge.backend.security.JwtUtil;
 import com.opsforge.backend.services.PasswordResetService;
+import com.opsforge.backend.services.TokenBlacklistService;
 import com.opsforge.backend.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,12 +27,18 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final UserService userService;
     private final PasswordResetService passwordResetService;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public AuthController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserService userService, PasswordResetService passwordResetService) {
+    public AuthController(AuthenticationManager authenticationManager, 
+                          JwtUtil jwtUtil, 
+                          UserService userService, 
+                          PasswordResetService passwordResetService,
+                          TokenBlacklistService tokenBlacklistService) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.userService = userService;
         this.passwordResetService = passwordResetService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @PostMapping("/login")
@@ -122,6 +129,23 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Logout user", description = "Invalidates the current JWT token")
+    public ResponseEntity<Map<String, String>> logout(@RequestHeader("Authorization") String authHeader) {
+        Map<String, String> response = new HashMap<>();
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            tokenBlacklistService.blacklistToken(token);
+            response.put("message", "Logged out successfully. Token invalidated.");
+            return ResponseEntity.ok(response);
+        }
+        
+        response.put("error", "Invalid authorization header.");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
 }
+
 
 
