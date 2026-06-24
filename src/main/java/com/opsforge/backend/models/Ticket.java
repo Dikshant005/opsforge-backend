@@ -21,15 +21,23 @@ public class Ticket {
 
     // Relationships
 
-    // The Developer who created it
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "developer_id", nullable = false)
-    private User developer;
+    // The Developers assigned to it
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "ticket_developers",
+        joinColumns = @JoinColumn(name = "ticket_id"),
+        inverseJoinColumns = @JoinColumn(name = "developer_id")
+    )
+    private java.util.List<User> developers = new java.util.ArrayList<>();
 
-    // The QA/Admin who reviewed it (Nullable because it starts unassigned)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reviewer_id")
-    private User reviewer;
+    // The QAs assigned to review it
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "ticket_qas",
+        joinColumns = @JoinColumn(name = "ticket_id"),
+        inverseJoinColumns = @JoinColumn(name = "reviewer_id")
+    )
+    private java.util.List<User> reviewers = new java.util.ArrayList<>();
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -59,11 +67,11 @@ public class Ticket {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public User getDeveloper() { return developer; }
-    public void setDeveloper(User developer) { this.developer = developer; }
+    public java.util.List<User> getDevelopers() { return developers; }
+    public void setDevelopers(java.util.List<User> developers) { this.developers = developers; }
 
-    public User getReviewer() { return reviewer; }
-    public void setReviewer(User reviewer) { this.reviewer = reviewer; }
+    public java.util.List<User> getReviewers() { return reviewers; }
+    public void setReviewers(java.util.List<User> reviewers) { this.reviewers = reviewers; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 

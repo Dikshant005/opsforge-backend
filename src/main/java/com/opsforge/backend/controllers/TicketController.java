@@ -44,6 +44,14 @@ public class TicketController {
         return ticketService.getTicketStats();
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Get a single ticket", description = "Returns the details of a specific ticket by its ID")
+    public ResponseEntity<Ticket> getTicketById(@PathVariable Long id) {
+        // ticketService.searchTickets doesn't do "by ID". We need a new method in TicketService or just use the repository
+        // Alternatively, assuming we add a getTicketById to ticketService
+        return ResponseEntity.ok(ticketService.getTicketById(id));
+    }
+
     @PostMapping(consumes = {"multipart/form-data"})
     @Operation(summary = "Create ticket", description = "Creates a new ticket with an optional attachment")
     public ResponseEntity<Ticket> createTicket(
@@ -53,14 +61,14 @@ public class TicketController {
             Principal principal) {
         
         User user = userService.getUserByUsername(principal.getName());
-        Long developerId = user.getId();
+        Long creatorId = user.getId();
 
         String attachmentUrl = null;
         if (file != null && !file.isEmpty()) {
             attachmentUrl = cloudinaryService.uploadFile(file);
         }
 
-        Ticket newTicket = ticketService.createTicket(title, description, developerId, attachmentUrl);
+        Ticket newTicket = ticketService.createTicket(title, description, creatorId, attachmentUrl);
         return ResponseEntity.ok(newTicket);
     }
 
@@ -74,11 +82,12 @@ public class TicketController {
     }
 
     @PutMapping("/{id}/assign")
-    @Operation(summary = "Assign ticket", description = "Reassigns a ticket to a different developer")
-    public ResponseEntity<Ticket> assignTicket(@PathVariable Long id, @RequestBody Map<String, String> payload, Principal principal) {
-        Long developerId = Long.parseLong(payload.get("developerId"));
+    @Operation(summary = "Assign ticket", description = "Reassigns a ticket to multiple developers and QAs")
+    public ResponseEntity<Ticket> assignTicket(@PathVariable Long id, @RequestBody Map<String, List<Long>> payload, Principal principal) {
+        List<Long> developerIds = payload.get("developerIds");
+        List<Long> qaIds = payload.get("qaIds");
         User user = userService.getUserByUsername(principal.getName());
-        Ticket updatedTicket = ticketService.assignTicket(id, developerId, user);
+        Ticket updatedTicket = ticketService.assignTicket(id, developerIds, qaIds, user);
         return ResponseEntity.ok(updatedTicket);
     }
 

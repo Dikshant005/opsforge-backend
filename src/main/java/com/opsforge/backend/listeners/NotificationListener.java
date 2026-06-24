@@ -23,40 +23,44 @@ public class NotificationListener {
     @EventListener
     public void handleTicketEvent(TicketEvent event) {
         Ticket ticket = event.getTicket();
-        User assignee = ticket.getDeveloper();
+        java.util.List<User> developers = ticket.getDevelopers();
         
         String subject = "";
-        String body = "";
+        String bodyBase = "";
 
         if (event.getAction().equals("ASSIGNED")) {
             subject = "OpsForge: New Ticket Assigned";
-            body = "Hi " + assignee.getUsername() + ",\n\nA new ticket has been assigned to you:\n" +
+            bodyBase = "A new ticket has been assigned to you:\n" +
                    "Title: " + ticket.getTitle() + "\n" +
                    "By: " + event.getPerformedBy().getUsername();
         } else if (event.getAction().equals("STATUS_CHANGED")) {
             subject = "OpsForge: Ticket Status Updated";
-            body = "Hi " + assignee.getUsername() + ",\n\nYour ticket [" + ticket.getTitle() + "] status has been changed to " + ticket.getStatus() + 
+            bodyBase = "Your ticket [" + ticket.getTitle() + "] status has been changed to " + ticket.getStatus() + 
                    " by " + event.getPerformedBy().getUsername();
         }
 
-        sendEmail(assignee.getUsername(), subject, body);
+        for (User dev : developers) {
+            sendEmail(dev.getUsername(), subject, "Hi " + dev.getUsername() + ",\n\n" + bodyBase);
+        }
     }
 
     @Async
     @EventListener
     public void handleCommentEvent(CommentEvent event) {
         Ticket ticket = event.getComment().getTicket();
-        User assignee = ticket.getDeveloper();
+        java.util.List<User> developers = ticket.getDevelopers();
         User author = event.getComment().getAuthor();
 
-        // Don't notify the developer if they are the one who commented
-        if (!assignee.getId().equals(author.getId())) {
-            String subject = "OpsForge: New Comment on Ticket " + ticket.getId();
-            String body = "Hi " + assignee.getUsername() + ",\n\n" + author.getUsername() + 
-                          " added a comment to your ticket [" + ticket.getTitle() + "]:\n\n" +
-                          event.getComment().getMessage();
+        for (User dev : developers) {
+            // Don't notify the developer if they are the one who commented
+            if (!dev.getId().equals(author.getId())) {
+                String subject = "OpsForge: New Comment on Ticket " + ticket.getId();
+                String body = "Hi " + dev.getUsername() + ",\n\n" + author.getUsername() + 
+                              " added a comment to your ticket [" + ticket.getTitle() + "]:\n\n" +
+                              event.getComment().getMessage();
 
-            sendEmail(assignee.getUsername(), subject, body);
+                sendEmail(dev.getUsername(), subject, body);
+            }
         }
     }
 

@@ -35,21 +35,20 @@ public class TicketService {
 
     // Create a Ticket
     @Transactional
-    public Ticket createTicket(String title, String description, Long developerId, String attachmentUrl) {
-        User developer = userRepository.findById(developerId)
-                .orElseThrow(() -> new RuntimeException("Cannot create ticket: Developer ID " + developerId + " not found."));
+    public Ticket createTicket(String title, String description, Long creatorId, String attachmentUrl) {
+        User creator = userRepository.findById(creatorId)
+                .orElseThrow(() -> new RuntimeException("Cannot create ticket: Creator ID " + creatorId + " not found."));
 
         Ticket ticket = new Ticket();
         ticket.setTitle(title);
         ticket.setDescription(description);
-        ticket.setDeveloper(developer);
         ticket.setStatus("PENDING");
         ticket.setAttachmentUrl(attachmentUrl);
 
         Ticket savedTicket = ticketRepository.save(ticket);
         
-        logAction("TICKET", savedTicket.getId(), "CREATE", "Ticket created", developer);
-        eventPublisher.publishEvent(new TicketEvent(savedTicket, developer, "ASSIGNED"));
+        logAction("TICKET", savedTicket.getId(), "CREATE", "Ticket created", creator);
+        eventPublisher.publishEvent(new TicketEvent(savedTicket, creator, "CREATED"));
         
         return savedTicket;
     }
@@ -57,6 +56,12 @@ public class TicketService {
     // Fetch all active tickets
     public List<Ticket> getAllTickets() {
         return ticketRepository.findByIsDeletedFalse();
+    }
+
+    public Ticket getTicketById(Long id) {
+        return ticketRepository.findById(id)
+                .filter(t -> !t.isDeleted())
+                .orElseThrow(() -> new RuntimeException("Ticket not found or deleted"));
     }
 
     // Search and Filter Tickets
@@ -68,11 +73,11 @@ public class TicketService {
         }
 
         if (status != null && developer != null) {
-            return ticketRepository.findByStatusAndDeveloperAndIsDeletedFalse(status.toUpperCase(), developer);
+            return ticketRepository.findByStatusAndDevelopersContainingAndIsDeletedFalse(status.toUpperCase(), developer);
         } else if (status != null) {
             return ticketRepository.findByStatusAndIsDeletedFalse(status.toUpperCase());
         } else if (developer != null) {
-            return ticketRepository.findByDeveloperAndIsDeletedFalse(developer);
+            return ticketRepository.findByDevelopersContainingAndIsDeletedFalse(developer);
         } else {
             return getAllTickets();
         }
@@ -98,7 +103,7 @@ public class TicketService {
         String userRole = performedBy.getRole();
 
         // 1. Authorization Check: Dev can only update their own tickets
-        if (userRole.equals("DEV") && !ticket.getDeveloper().getId().equals(performedBy.getId())) {
+        if (userRole.equals("DEV") && ticket.getDevelopers().stream().noneMatch(d -> d.getId().equals(performedBy.getId()))) {
             throw new RuntimeException("Access Denied: You can only update tickets assigned to you.");
         }
 
@@ -128,26 +133,35 @@ public class TicketService {
         return updatedTicket;
     }
 
-    // Assign a Ticket with Role-based permissions
+    // Assign a Ticket to multiple developers and QAs (Admin Only)
     @Transactional
-    public Ticket assignTicket(Long ticketId, Long developerId, User performedBy) {
+    public Ticket assignTicket(Long ticketId, List<Long> developerIds, List<Long> qaIds, User performedBy) {
         String userRole = performedBy.getRole();
         
-        // Only QA and Admin can assign tickets
-        if (!userRole.equals("ADMIN") && !userRole.equals("QA")) {
-            throw new RuntimeException("Access Denied: Only QA or Admin can assign tickets.");
+        // Only Admin can assign tickets now
+        if (!userRole.equals("ADMIN")) {
+            throw new RuntimeException("Access Denied: Only Admin can assign tickets.");
+        }
+
+        if (developerIds == null || developerIds.isEmpty() || qaIds == null || qaIds.isEmpty()) {
+            throw new RuntimeException("Validation Error: At least 1 Developer and 1 QA must be assigned.");
         }
 
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket ID " + ticketId + " not found."));
         
-        User developer = userRepository.findById(developerId)
-                .orElseThrow(() -> new RuntimeException("Developer ID " + developerId + " not found."));
+        List<User> developers = userRepository.findAllById(developerIds);
+        if (developers.isEmpty()) throw new RuntimeException("No valid developers found.");
+        
+        List<User> qas = userRepository.findAllById(qaIds);
+        if (qas.isEmpty()) throw new RuntimeException("No valid QAs found.");
 
-        ticket.setDeveloper(developer);
+        ticket.setDevelopers(developers);
+        ticket.setReviewers(qas);
+        
         Ticket updatedTicket = ticketRepository.save(ticket);
 
-        logAction("TICKET", ticketId, "ASSIGNMENT", "Assigned to " + developer.getUsername(), performedBy);
+        logAction("TICKET", ticketId, "ASSIGNMENT", "Assigned to multiple Devs and QAs", performedBy);
         eventPublisher.publishEvent(new TicketEvent(updatedTicket, performedBy, "ASSIGNED"));
         
         return updatedTicket;

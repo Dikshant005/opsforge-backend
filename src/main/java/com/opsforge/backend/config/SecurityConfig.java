@@ -13,8 +13,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -26,6 +29,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            .cors(org.springframework.security.config.Customizer.withDefaults())
             //Disable CSRF to stop any corss origin forgery attacks
             // have to explicitly disable as it will still ask the csrf token for POST/PUT/DELETE requests even if we are using JWTs and not cookies for auth
             .csrf(csrf -> csrf.disable())
@@ -47,7 +51,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/*/role").hasRole("ADMIN")
                 .requestMatchers("/api/users/*/deactivate").hasRole("ADMIN")
                 .requestMatchers("/api/users/*/reactivate").hasRole("ADMIN")
-                .requestMatchers("/api/tickets/*/status").hasAnyRole("ADMIN", "QA")
+                .requestMatchers("/api/tickets/*/status").hasAnyRole("ADMIN", "QA", "DEV")
                 .requestMatchers("/api/tickets/*/assign").hasAnyRole("ADMIN", "QA")
                 .anyRequest().authenticated()// EVERY other door requires a VIP Pass (JWT)
             )
@@ -68,5 +72,16 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
+        org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
+        configuration.setAllowedOrigins(java.util.List.of("*")); // Allows all origins
+        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(java.util.List.of("*"));
+        org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

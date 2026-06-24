@@ -11,7 +11,18 @@ import java.util.List;
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
     List<Ticket> findByIsDeletedFalse();
     List<Ticket> findByStatusAndIsDeletedFalse(String status);
-    List<Ticket> findByDeveloperAndIsDeletedFalse(User developer);
-    List<Ticket> findByStatusAndDeveloperAndIsDeletedFalse(String status, User developer);
+    List<Ticket> findByDevelopersContainingAndIsDeletedFalse(User developer);
+    List<Ticket> findByStatusAndDevelopersContainingAndIsDeletedFalse(String status, User developer);
     long countByStatusAndIsDeletedFalse(String status);
+    
+    // Dashboard queries
+    long countByDevelopersContainingAndStatusInAndIsDeletedFalse(User developer, List<String> statuses);
+    List<Ticket> findTop5ByDevelopersContainingAndStatusInAndIsDeletedFalseOrderByCreatedAtDesc(User developer, List<String> statuses);
+    
+    long countByReviewersContainingAndStatusAndIsDeletedFalse(User reviewer, String status);
+    List<Ticket> findTop5ByStatusAndIsDeletedFalseOrderByCreatedAtDesc(String status);
+    List<Ticket> findTop5ByReviewersContainingAndStatusAndIsDeletedFalseOrderByCreatedAtDesc(User reviewer, String status);
+    
+    long countByIsDeletedFalse();
+    long countByStatusNotAndIsDeletedFalse(String status);
 }

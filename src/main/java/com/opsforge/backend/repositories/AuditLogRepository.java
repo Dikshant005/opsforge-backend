@@ -8,4 +8,6 @@ import java.util.List;
 @Repository
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     List<AuditLog> findByEntityNameAndEntityIdOrderByTimestampDesc(String entityName, Long entityId);
+    
+    List<AuditLog> findTop10ByOrderByTimestampDesc();
 }

@@ -122,6 +122,10 @@ public class UserService {
         return userRepository.findByRoleAndAccountStatusAndIsActiveTrue("DEV", "APPROVED");
     }
 
+    public List<User> getAssignableQAs() {
+        return userRepository.findByRoleAndAccountStatusAndIsActiveTrue("QA", "APPROVED");
+    }
+
     private void logAction(String entity, Long entityId, String action, String details, User performedBy) {
         AuditLog log = new AuditLog();
         log.setEntityName(entity);

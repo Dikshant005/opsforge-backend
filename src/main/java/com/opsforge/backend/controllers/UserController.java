@@ -46,6 +46,12 @@ public class UserController {
         return userService.getAssignableDevelopers();
     }
 
+    @GetMapping("/qas")
+    @Operation(summary = "Get active QAs", description = "Returns a list of approved and active users with the QA role")
+    public List<User> getQAs() {
+        return userService.getAssignableQAs();
+    }
+
     //GET http://localhost:8080/api/users/{username}
     @GetMapping("/{username}")
     @Operation(summary = "Get user by username", description = "Returns profile data for a specific user")
